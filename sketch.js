@@ -33,6 +33,9 @@ let lastIndex;
 let currentPlayer;
 let winner;
 
+/** @var 'singlePlayer'|'multiplayer' */
+let gameMode = 'singlePlayer';
+
 
 /**
  * Initiates game
@@ -129,14 +132,18 @@ function takeTurn(event) {
 		previousIndex.push(position);
 		lastIndex = position;
 		
-		if (checkWinner()) {
+		if (checkIfStreak(currentPlayer)) {
 			winner = currentPlayer;
 			
 			document.removeEventListener('mousemove', drawMarker);
 			canvas.removeEventListener('click', takeTurn);
+		} else {
+			if (gameMode === 'singlePlayer') {
+				computerTurn();
+			} else {
+				switchCurrentPlayer();
+			}
 		}
-		
-		switchCurrentPlayer();
 		
 		drawMarker(event);
 		drawBoard();
@@ -145,38 +152,169 @@ function takeTurn(event) {
 
 
 /**
+ * Calculates best turn for computer an makes the move
+ *
+ * return void
+ */
+function computerTurn() {
+	for (let i = 0; i < 7; i++) {
+		const y = getAvailableCell(i);
+		
+		if (y === null) {
+			continue;
+		}
+		
+		const blueWouldWin = checkIfStreak('blue', 4, {y, x: i});
+		if (blueWouldWin) {
+			grid[y][i] = 'blue';
+			previousIndex.push({y, i});
+			lastIndex = {y, i};
+
+			if (blueWouldWin) {
+				winner = 'blue';
+
+				document.removeEventListener('mousemove', drawMarker);
+				canvas.removeEventListener('click', takeTurn);
+			}
+
+			return;
+		}
+		
+		const redWouldWin = checkIfStreak('red', 3, {y, x: i});
+		if (redWouldWin) {
+			grid[y][i] = 'blue';
+			previousIndex.push({y, i});
+			lastIndex = {y, i};
+			
+			return;
+		}
+	}
+	
+	const possibleMoves = [];
+	for (let x = 0; x < 7; x++) {
+		const y = getAvailableCell(x);
+		
+		if (y === null) {
+			continue;
+		}
+		
+		let value = 0;
+		// best first move
+		if (y === 5 && x === 3) {
+			value += 2;
+		} else if (y === 5 && x === 2 || y === 5 && x === 4) {
+			value += 1
+		}
+		
+		// Can i get 3 in a row
+		if (checkIfStreak('blue', 3, {y, x})) {
+			value += 2;
+		}
+		
+		// Can i get 2 in a row
+		if (checkIfStreak('blue', 2, {y, x})) {
+			value += 1;
+		}
+		
+		possibleMoves.push({y, x, value});
+	}
+	
+	const move = possibleMoves.reduce((prevMove, currMove) => {
+		return (prevMove.value > currMove.value) ? prevMove : currMove;
+	})
+	
+	grid[move.y][move.x] = 'blue';
+	previousIndex.push(move);
+	lastIndex = move;
+}
+
+
+/**
  * Check four in a row from last position
  *
  * return void
  */
-function checkWinner() {
-	let horizontal = 0;
-	let vertical = 0;
-	let diagonal1 = 0;
-	let diagonal2 = 0;
-	for (let i = 1; i <= 3; i++) {
-		if (lastIndex.x - i > 0 && grid[lastIndex.y][lastIndex.x - i] === currentPlayer
-		|| lastIndex.x + i < 7 && grid[lastIndex.y][lastIndex.x + i] === currentPlayer) {
-			horizontal++;
+function checkIfStreak(player, limit = 4, index = lastIndex) {
+	let horizontalCount = 0;
+	let horizontalPrevValue;
+	for (let i = 0; i < 7; i++) {
+		
+		if (grid[index.y][i] === player) {
+			horizontalCount++;
+			
+			if (horizontalCount >= limit) {
+				return true;
+			}
+		} else if (horizontalPrevValue && horizontalPrevValue === player) {
+			break;
 		}
 		
-		if (lastIndex.y - i > 0 && grid[lastIndex.y - i][lastIndex.x] === currentPlayer
-		|| lastIndex.y + i < 6 && grid[lastIndex.y + i][lastIndex.x] === currentPlayer) {
-			vertical++;
+		horizontalPrevValue = grid[index.y][i];
+	}
+	
+	let verticalCount = 0;
+	let verticalPrevValue;
+	for (let i = 0; i < 6; i++) {
+		if (grid[i][index.x] === player) {
+			verticalCount++;
+			
+			if (verticalCount >= limit) {
+				return true;
+			}
+		} else if (verticalPrevValue && verticalPrevValue === player) {
+			break;
 		}
 		
-		if (lastIndex.y - i > 0 && grid[lastIndex.y - i][lastIndex.x - i] === currentPlayer
-		|| lastIndex.y + i < 6 && grid[lastIndex.y + i][lastIndex.x + i] === currentPlayer) {
-			diagonal1++;
-		}
-		
-		if (lastIndex.y + i < 6 && grid[lastIndex.y + i][lastIndex.x - i] === currentPlayer
-		|| lastIndex.y - i > 0 && grid[lastIndex.y - i][lastIndex.x + i] === currentPlayer) {
-			diagonal2++;
+		verticalPrevValue = grid[i][index.x];
+	}
+	
+	
+	const diagonalCount = {
+		forwardUp: 0,
+		forwardDown: 0,
+		backUp: 0,
+		backDown: 0,
+	};
+	
+	const diagonalPrevValue = {
+		forwardUp: null,
+		forwardDown: null,
+		backUp: null,
+		backDown: null,
+	};
+	
+	for (let i = 1; i <= limit - 1; i++) {
+		if (index.y - i > 0 && index.x + i < 7 && grid[index.y - i][index.x + i] === player) {
+			diagonalCount.forwardUp++;
+		} else if (diagonalPrevValue.forwardUp && diagonalPrevValue.forwardUp === player) {
+			break;
 		}
 	}
 	
-	return horizontal >= 3 || vertical >= 3 || diagonal1 >= 3 || diagonal2 >= 3;
+	for (let i = 1; i <= limit - 1; i++) {
+		if (index.y - i > 0 && index.x - i > 0 && grid[index.y - i][index.x - i] === player) {
+			diagonalCount.forwardDown++;
+		} else if (diagonalPrevValue.forwardDown && diagonalPrevValue.forwardDown === player) {
+			break;
+		}
+	}
+	for (let i = 1; i <= limit - 1; i++) {
+		if (index.y + i < 6 && index.x + i < 7 && grid[index.y + i][index.x + i] === player) {
+			diagonalCount.backUp++;
+		} else if (diagonalPrevValue.backUp && diagonalPrevValue.backUp === player) {
+			break;
+		}
+	}
+	for (let i = 1; i <= limit - 1; i++) {
+		if (index.y + i < 6 && index.x - i > 0 && grid[index.y + i][index.x - i] === player) {
+			diagonalCount.backDown++;
+		} else if (diagonalPrevValue.backDown && diagonalPrevValue.backDown === player) {
+			break;
+		}
+	}
+	
+	return 1 + diagonalCount.backUp + diagonalCount.forwardDown >= limit
+		|| 1 + diagonalCount.backDown + diagonalCount.forwardUp >= limit;
 }
 
 
