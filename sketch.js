@@ -12,15 +12,15 @@ const context = canvas.getContext('2d');
 
 
 /**
- * @var Array.<string|boolean[]>
+ * @var Array.<string|null[]>
  */
 const grid = [
-	[false, false, false, false, false, false, false],
-	[false, false, false, false, false, false, false],
-	[false, false, false, false, false, false, false],
-	[false, false, false, false, false, false, false],
-	[false, false, false, false, false, false, false],
-	[false, false, false, false, false, false, false],
+	[null, null, null, null, null, null, null],
+	[null, null, null, null, null, null, null],
+	[null, null, null, null, null, null, null],
+	[null, null, null, null, null, null, null],
+	[null, null, null, null, null, null, null],
+	[null, null, null, null, null, null, null],
 ];
 
 /** @var Array.<{x: number, y: number}> */
@@ -148,6 +148,16 @@ function takeTurn(event) {
 		drawMarker(event);
 		drawBoard();
 	}
+}
+
+
+/**
+ * switches current player
+ *
+ * return void
+ */
+function switchCurrentPlayer() {
+	currentPlayer = (currentPlayer === 'red') ? 'blue' : 'red';
 }
 
 
@@ -319,16 +329,6 @@ function checkIfStreak(player, limit = 4, index = lastIndex) {
 
 
 /**
- * switches current player
- *
- * return void
- */
-function switchCurrentPlayer() {
-	currentPlayer = (currentPlayer === 'red') ? 'blue' : 'red';
-}
-
-
-/**
  * Get first available cell based on x position
  *
  * @param {number} xIndex
@@ -336,7 +336,7 @@ function switchCurrentPlayer() {
  * return null|number
  */
 function getAvailableCell(xIndex) {
-	for (let i = 6 - 1; i >= 0; i--) {
+	for (let i = 5; i >= 0; i--) {
 		if (! grid[i][xIndex]) {
 			return i;
 		}
