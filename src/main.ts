@@ -1,4 +1,4 @@
-import './style.css'
+import './style.css';
 import Game from './_Game';
 
 console.log(`
@@ -12,4 +12,4 @@ console.log(`
 
 window.addEventListener('load', () => {
   new Game();
-})
+});
