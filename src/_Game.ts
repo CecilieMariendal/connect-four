@@ -3,11 +3,18 @@ type Index = {
   y: number;
 };
 
+
+enum Players {
+  ONE = 'red',
+  TWO = 'blue',
+}
+
+
 export default class Game {
   private readonly canvas = document.querySelector<HTMLCanvasElement>('#myCanvas')!;
   private readonly context = this.canvas.getContext('2d')!;
 
-  private readonly grid: Array<Array<string | null>> = [
+  private readonly grid: Array<Array<Players | null>> = [
     [null, null, null, null, null, null, null],
     [null, null, null, null, null, null, null],
     [null, null, null, null, null, null, null],
@@ -20,17 +27,13 @@ export default class Game {
 
   private lastIndex?: Index;
 
-  private currentPlayer: 'red' | 'blue' = 'red';
-  private winner?: 'red' | 'blue';
+  private currentPlayer = Players.ONE
+  private winner?: Players;
 
   private gameMode: 'singlePlayer' | 'multiplayer' = 'singlePlayer';
 
-  /**
-   * Initiates game
-   */
+  
   constructor() {
-    this.currentPlayer = 'red';
-
     document.addEventListener('mousemove', this.drawMarker.bind(this));
     this.canvas.addEventListener('click', this.takeTurn.bind(this));
 
@@ -58,8 +61,7 @@ export default class Game {
     });
 
     if (this.winner) {
-      const text =
-        this.winner.charAt(0).toUpperCase() + this.winner.slice(1) + ' wins!!';
+      const text =this.winner.charAt(0).toUpperCase() + this.winner.slice(1) + ' wins!!';
       this.context.font = '60px sans-serif';
       this.context.textAlign = 'center';
 
@@ -91,9 +93,12 @@ export default class Game {
     this.context.clearRect(0, 0, this.canvas.width, 100);
     this.context.arc(positionX, 50, 100 / 2 - 5, 0, 2 * Math.PI);
 
-    this.context.fillStyle = this.getPlayerGradient(
-      positionX, 50, this.getAvailableCell(indexX) !== null ? this.currentPlayer : 'invalid'
-    );
+    if (this.getAvailableCell(indexX) !== null) {
+      this.context.fillStyle = this.getPlayerGradient(positionX, 50, this.currentPlayer);
+    } else {
+      this.context.fillStyle = this.getPlayerGradient(positionX, 50);
+    }
+    
     this.context.fill();
   }
 
@@ -109,6 +114,7 @@ export default class Game {
       this.grid[position.y][position.x] = this.currentPlayer;
       this.previousIndex.push(position);
       this.lastIndex = position;
+      
 
       if (this.checkIfStreak(this.currentPlayer)) {
         this.winner = this.currentPlayer;
@@ -132,7 +138,7 @@ export default class Game {
    * switches current player
    */
   private switchCurrentPlayer(): void {
-    this.currentPlayer = this.currentPlayer === 'red' ? 'blue' : 'red';
+    this.currentPlayer = this.currentPlayer === Players.ONE ? Players.TWO : Players.ONE;
   }
 
   /**
@@ -146,14 +152,14 @@ export default class Game {
         continue;
       }
 
-      const blueWouldWin = this.checkIfStreak('blue', 4, { y,x });
+      const blueWouldWin = this.checkIfStreak(Players.TWO, 4, { y,x });
       if (blueWouldWin) {
-        this.grid[y][x] = 'blue';
+        this.grid[y][x] = Players.TWO;
         this.previousIndex.push({y,x});
         this.lastIndex = {y,x};
 
         if (blueWouldWin) {
-          this.winner = 'blue';
+          this.winner = Players.TWO;
 
           document.removeEventListener('mousemove', this.drawMarker);
           this.canvas.removeEventListener('click', this.takeTurn);
@@ -162,9 +168,9 @@ export default class Game {
         return;
       }
 
-      const redWouldWin = this.checkIfStreak('red', 3, {y,x});
+      const redWouldWin = this.checkIfStreak(Players.ONE, 3, {y,x});
       if (redWouldWin) {
-        this.grid[y][x] = 'blue';
+        this.grid[y][x] = Players.TWO;
         this.previousIndex.push({y,x});
         this.lastIndex = {y,x};
 
@@ -189,12 +195,12 @@ export default class Game {
       }
 
       // Can i get 3 in a row
-      if (this.checkIfStreak('blue', 3, { y, x })) {
+      if (this.checkIfStreak(Players.TWO, 3, { y, x })) {
         value += 2;
       }
 
       // Can i get 2 in a row
-      if (this.checkIfStreak('blue', 2, { y, x })) {
+      if (this.checkIfStreak(Players.TWO, 2, { y, x })) {
         value += 1;
       }
 
@@ -205,7 +211,7 @@ export default class Game {
       return prevMove.value > currMove.value ? prevMove : currMove;
     });
 
-    this.grid[move.y][move.x] = 'blue';
+    this.grid[move.y][move.x] = Players.TWO;
     this.previousIndex.push(move);
     this.lastIndex = move;
   }
@@ -213,8 +219,8 @@ export default class Game {
   /**
    * Check four in a row from last position
    */
-  private checkIfStreak(player: 'red' | 'blue', limit = 4, index = this.lastIndex): boolean {
-    if (!index) {
+  private checkIfStreak(player: Players, limit = 4, index = this.lastIndex): boolean {
+    if (! index) {
       return false;
     }
 
@@ -317,13 +323,13 @@ export default class Game {
   /**
    * Creates a gradient based on player
    */
-  private getPlayerGradient(x: number, y: number, player: string = this.currentPlayer): CanvasGradient {
+  private getPlayerGradient(x: number, y: number, player?: Players): CanvasGradient {
     const gradient = this.context.createRadialGradient(x, y - 25, 10, x, y - 25, 70);
 
-    if (player === 'red') {
+    if (player === Players.ONE) {
       gradient.addColorStop(0, '#ff0000');
       gradient.addColorStop(1, '#aa0202');
-    } else if (player === 'blue') {
+    } else if (player === Players.TWO) {
       gradient.addColorStop(0, '#0073ff');
       gradient.addColorStop(1, '#02539a');
     } else {
