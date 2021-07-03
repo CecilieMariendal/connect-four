@@ -1,20 +1,12 @@
-type Index = {
-  x: number;
-  y: number;
-};
+import { Grid, Index, Players } from './_@types';
 
-
-enum Players {
-  ONE = 'red',
-  TWO = 'blue',
-}
 
 
 export default class Game {
   private readonly canvas = document.querySelector<HTMLCanvasElement>('#myCanvas')!;
   private readonly context = this.canvas.getContext('2d')!;
 
-  private readonly grid: Array<Array<Players | null>> = [
+  private readonly grid: Grid = [
     [null, null, null, null, null, null, null],
     [null, null, null, null, null, null, null],
     [null, null, null, null, null, null, null],
