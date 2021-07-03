@@ -1,7 +1,6 @@
 import { Grid, Index, Players } from './_@types';
 
 
-
 export default class Game {
   private readonly canvas = document.querySelector<HTMLCanvasElement>('#myCanvas')!;
   private readonly context = this.canvas.getContext('2d')!;
@@ -18,19 +17,23 @@ export default class Game {
   private readonly previousIndex: Array<Index> = [];
 
   private lastIndex?: Index;
-
-  private currentPlayer = Players.ONE
-  private winner?: Players;
-
   private gameMode: 'singlePlayer' | 'multiplayer' = 'singlePlayer';
+  private currentPlayer = Players.ONE
 
-  
-  constructor() {
+
+  startGame() {
     document.addEventListener('mousemove', this.drawMarker.bind(this));
     this.canvas.addEventListener('click', this.takeTurn.bind(this));
 
     this.drawBoard();
   }
+
+
+  stopGame() {
+    document.removeEventListener('mousemove', this.drawMarker);
+    this.canvas.removeEventListener('click', this.takeTurn);
+  }
+
 
   /**
    * Erases current board and draws new board based on grid
@@ -51,20 +54,22 @@ export default class Game {
         this.context.fill();
       });
     });
-
-    if (this.winner) {
-      const text =this.winner.charAt(0).toUpperCase() + this.winner.slice(1) + ' wins!!';
-      this.context.font = '60px sans-serif';
-      this.context.textAlign = 'center';
-
-      this.context.strokeStyle = 'white';
-      this.context.lineWidth = 8;
-      this.context.strokeText(text, 350, 400);
-
-      this.context.fillStyle = this.winner;
-      this.context.fillText(text, 350, 400);
-    }
   }
+
+
+  private drawWinner(player: Players) {
+    const text = player.charAt(0).toUpperCase() + player.slice(1) + ' wins!!';
+    this.context.font = '60px sans-serif';
+    this.context.textAlign = 'center';
+
+    this.context.strokeStyle = 'white';
+    this.context.lineWidth = 8;
+    this.context.strokeText(text, 350, 400);
+
+    this.context.fillStyle = player;
+    this.context.fillText(text, 350, 400);
+  }
+
 
   /**
    * Draws marker based on mouse position
@@ -106,13 +111,14 @@ export default class Game {
       this.grid[position.y][position.x] = this.currentPlayer;
       this.previousIndex.push(position);
       this.lastIndex = position;
-      
+
+      this.drawMarker(event);
+      this.drawBoard();
 
       if (this.checkIfStreak(this.currentPlayer)) {
-        this.winner = this.currentPlayer;
 
-        document.removeEventListener('mousemove', this.drawMarker);
-        this.canvas.removeEventListener('click', this.takeTurn);
+
+        this.drawWinner(this.currentPlayer);
       } else {
         if (this.gameMode === 'singlePlayer') {
           this.computerTurn();
@@ -120,9 +126,6 @@ export default class Game {
           this.switchCurrentPlayer();
         }
       }
-
-      this.drawMarker(event);
-      this.drawBoard();
     }
   }
 
@@ -151,10 +154,8 @@ export default class Game {
         this.lastIndex = {y,x};
 
         if (blueWouldWin) {
-          this.winner = Players.TWO;
-
-          document.removeEventListener('mousemove', this.drawMarker);
-          this.canvas.removeEventListener('click', this.takeTurn);
+          this.drawWinner(Players.TWO);
+          this.stopGame();
         }
 
         return;

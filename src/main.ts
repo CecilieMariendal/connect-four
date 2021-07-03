@@ -11,5 +11,6 @@ console.log(`
 `);
 
 window.addEventListener('load', () => {
-  new Game();
+  const game = new Game();
+  game.startGame();
 });
