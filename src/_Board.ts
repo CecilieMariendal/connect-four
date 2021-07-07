@@ -1,4 +1,4 @@
-import { Grid, Players } from './_@types';
+import { Grid, Index, Players } from './_@types';
 
 export class board {
   private readonly canvas = document.querySelector<HTMLCanvasElement>('#myCanvas')!;
@@ -46,7 +46,20 @@ export class board {
   }
 
 
-  drawWinner(player: Players) {
+  drawWinner(player: Players, streak: Index[]): void {
+    streak.forEach(({x, y}) => {
+      console.log(x, y);
+      
+      const xCalced = 100 / 2 + 100 * x;
+      const yCalced = 100 + 100 / 2 + 100 * y;
+
+      this.context.beginPath();
+      this.context.arc(xCalced, yCalced, 100 / 2 - 5, 0, 2 * Math.PI);
+
+      this.context.fillStyle = 'green';
+      this.context.fill();
+    });
+
     const text = player.charAt(0).toUpperCase() + player.slice(1) + ' wins!!';
     this.context.font = '60px sans-serif';
     this.context.textAlign = 'center';

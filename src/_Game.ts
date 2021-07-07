@@ -69,10 +69,9 @@ export default class Game {
       this.updateMarker(event);
       this.board.drawBoard(this.grid);
 
-      if (this.checkIfStreak(this.currentPlayer)) {
-
-
-        this.board.drawWinner(this.currentPlayer);
+      const streak = this.checkIfStreak(this.currentPlayer);
+      if (streak.length >= 4) {
+        this.board.drawWinner(this.currentPlayer, streak);
       } else {
         if (this.gameMode === 'singlePlayer') {
           this.computerTurn();
@@ -102,13 +101,13 @@ export default class Game {
       }
 
       const blueWouldWin = this.checkIfStreak(Players.TWO, 4, { y,x });
-      if (blueWouldWin) {
+      if (blueWouldWin.length >= 4) {
         this.grid[y][x] = Players.TWO;
         this.previousIndex.push({y,x});
         this.lastIndex = {y,x};
 
         if (blueWouldWin) {
-          this.board.drawWinner(Players.TWO);
+          this.board.drawWinner(Players.TWO, blueWouldWin);
           this.stopGame();
         }
 
@@ -116,7 +115,7 @@ export default class Game {
       }
 
       const redWouldWin = this.checkIfStreak(Players.ONE, 3, {y,x});
-      if (redWouldWin) {
+      if (redWouldWin.length >= 4) {
         this.grid[y][x] = Players.TWO;
         this.previousIndex.push({y,x});
         this.lastIndex = {y,x};
@@ -142,12 +141,12 @@ export default class Game {
       }
 
       // Can i get 3 in a row
-      if (this.checkIfStreak(Players.TWO, 3, { y, x })) {
+      if (this.checkIfStreak(Players.TWO, 3, { y, x }).length > 3) {
         value += 2;
       }
 
       // Can i get 2 in a row
-      if (this.checkIfStreak(Players.TWO, 2, { y, x })) {
+      if (this.checkIfStreak(Players.TWO, 2, { y, x }).length > 2) {
         value += 1;
       }
 
@@ -166,45 +165,45 @@ export default class Game {
   /**
    * Check four in a row from last position
    */
-  private checkIfStreak(player: Players, limit = 4, index = this.lastIndex!): boolean {
-    let horizontalCount = 0;
+  private checkIfStreak(player: Players, limit = 4, index = this.lastIndex!): Index[] {
+    const horizontal = [];
     let horizontalPrevValue;
 
     for (let i = 0; i < this.grid[index.y].length; i++) {
       if (this.grid[index.y][i] === player) {
-        horizontalCount++;
-
-        if (horizontalCount >= limit) {
-          return true;
+        horizontal.push({x: i, y: index.y});
+        
+        if (horizontal.length >= limit) {
+          return horizontal;
         }
       } else if (horizontalPrevValue === player) {
         break;
       }
-
+      
       horizontalPrevValue = this.grid[index.y][i];
     }
 
-    let verticalCount = 0;
+    const vertical = [];
     let verticalPrevValue;
-    for (let i = 0; i < this.grid.length; i++) {
-      if (this.grid[i][index.x] === player) {
-        verticalCount++;
+    for (let y = 0; y < this.grid.length; y++) {
+      if (this.grid[y][index.x] === player) {
+        vertical.push({x: index.x, y});
 
-        if (verticalCount >= limit) {
-          return true;
+        if (vertical.length >= limit) {
+          return vertical;
         }
       } else if (verticalPrevValue && verticalPrevValue === player) {
         break;
       }
 
-      verticalPrevValue = this.grid[i][index.x];
+      verticalPrevValue = this.grid[y][index.x];
     }
 
-    const diagonalCount = {
-      forwardUp: 0,
-      forwardDown: 0,
-      backUp: 0,
-      backDown: 0,
+    const diagonalCount: {[key: string]: Index[]} = {
+      forwardUp: [],
+      forwardDown: [],
+      backUp: [],
+      backDown: [],
     };
 
     const diagonalPrevValue = {
@@ -216,7 +215,7 @@ export default class Game {
 
     for (let i = 1; i <= limit - 1; i++) {
       if (index.y - i > 0 && index.x + i < 7 && this.grid[index.y - i][index.x + i] === player) {
-        diagonalCount.forwardUp++;
+        diagonalCount.forwardUp.push({x: index.x, y: index.y});
       } else if (diagonalPrevValue.forwardUp && diagonalPrevValue.forwardUp === player) {
         break;
       }
@@ -224,30 +223,35 @@ export default class Game {
 
     for (let i = 1; i <= limit - 1; i++) {
       if (index.y - i > 0 && index.x - i > 0 && this.grid[index.y - i][index.x - i] === player) {
-        diagonalCount.forwardDown++;
+        diagonalCount.forwardDown.push({x: index.x, y: index.y});
       } else if (diagonalPrevValue.forwardDown && diagonalPrevValue.forwardDown === player) {
         break;
       }
     }
     for (let i = 1; i <= limit - 1; i++) {
       if (index.y + i < 6 && index.x + i < 7 && this.grid[index.y + i][index.x + i] === player) {
-        diagonalCount.backUp++;
+        diagonalCount.backUp.push({x: index.x, y: index.y});
       } else if (diagonalPrevValue.backUp && diagonalPrevValue.backUp === player) {
         break;
       }
     }
     for (let i = 1; i <= limit - 1; i++) {
       if (index.y + i < 6 && index.x - i > 0 && this.grid[index.y + i][index.x - i] === player) {
-        diagonalCount.backDown++;
+        diagonalCount.backDown.push({x: index.x, y: index.y});
       } else if (diagonalPrevValue.backDown && diagonalPrevValue.backDown === player) {
         break;
       }
     }
 
-    return (
-      1 + diagonalCount.backUp + diagonalCount.forwardDown >= limit ||
-      1 + diagonalCount.backDown + diagonalCount.forwardUp >= limit
-    );
+    const dialognal1 = [...diagonalCount.backUp, ...diagonalCount.forwardDown];
+    const dialognal2 = [...diagonalCount.backDown, ...diagonalCount.forwardUp];
+    if (1 + dialognal1.length >= limit) {
+      return dialognal1;
+    } else if (1 + dialognal2.length >= limit) {
+      return dialognal2;
+    }
+
+    return [];
   }
 
   /**
