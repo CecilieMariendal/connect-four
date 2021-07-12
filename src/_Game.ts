@@ -4,7 +4,6 @@ import { board } from './_Board';
 
 export default class Game {
   private readonly canvas = document.querySelector<HTMLCanvasElement>('#myCanvas')!;
-  private readonly context = this.canvas.getContext('2d')!;
 
   private readonly board = new board();
 
@@ -16,8 +15,6 @@ export default class Game {
     [null, null, null, null, null, null, null],
     [null, null, null, null, null, null, null],
   ];
-
-  private readonly previousIndex: Array<Index> = [];
 
   private lastIndex?: Index;
   private gameMode: 'singlePlayer' | 'multiplayer' = 'singlePlayer';
@@ -63,7 +60,6 @@ export default class Game {
     if (y !== null) {
       const position = {y, x};
       this.grid[position.y][position.x] = this.currentPlayer;
-      this.previousIndex.push(position);
       this.lastIndex = position;
 
       this.updateMarker(event);
@@ -103,7 +99,6 @@ export default class Game {
       const blueWouldWin = this.checkIfStreak(Players.TWO, 4, { y,x });
       if (blueWouldWin.length >= 4) {
         this.grid[y][x] = Players.TWO;
-        this.previousIndex.push({y,x});
         this.lastIndex = {y,x};
 
         if (blueWouldWin) {
@@ -117,7 +112,6 @@ export default class Game {
       const redWouldWin = this.checkIfStreak(Players.ONE, 3, {y,x});
       if (redWouldWin.length >= 4) {
         this.grid[y][x] = Players.TWO;
-        this.previousIndex.push({y,x});
         this.lastIndex = {y,x};
 
         return;
@@ -158,7 +152,6 @@ export default class Game {
     });
 
     this.grid[move.y][move.x] = Players.TWO;
-    this.previousIndex.push(move);
     this.lastIndex = move;
   }
 
